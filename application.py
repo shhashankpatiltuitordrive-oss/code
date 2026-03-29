@@ -69,9 +69,7 @@ def predict_food_usage(data: GroceryRequest):
         # NOTE: In production, use a full URL or a helper function instead of an HTTP call to self.
         # For local testing, ensure your server is running on port 8000.
         try:
-            classmate_res = requests.get("http://127.0.0.1:8000/classmate-api", timeout=2)
-            classmate_res.raise_for_status()
-            classmate = classmate_res.json()
+            classmate = get_classmate_data()
         except Exception:
             # Fallback if the internal call fails
             classmate = {"discount": 0, "tip": 0}
