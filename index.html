@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+
+<title>Food Predictor</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f4f6f8;
+    padding: 40px;
+}
+
+.container {
+    max-width: 700px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+h2 {
+    text-align: center;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+input, select {
+    padding: 8px;
+    width: 30%;
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.add-btn {
+    background: #28a745;
+    color: white;
+    margin-bottom: 15px;
+}
+
+.remove-btn {
+    background: red;
+    color: white;
+}
+
+.predict-btn {
+    width: 100%;
+    background: #007bff;
+    color: white;
+    margin-top: 20px;
+}
+
+.card {
+    background: #f1f1f1;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Food Consumption Predictor</h2>
+
+<label>Household Size</label>
+<select id="size">
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+<option>6</option>
+</select>
+
+<h3>Grocery Logs</h3>
+
+<button class="add-btn" onclick="addRow()">+ Add Item</button>
+
+<div id="groceryContainer"></div>
+
+<label>Budget (€)</label>
+<input id="budget" type="number" step="0.01" value="0">
+
+<button class="predict-btn" onclick="send()">Predict</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+let container = document.getElementById("groceryContainer");
+
+// default rows
+addRow();
+addRow();
+
+function addRow(){
+    let div = document.createElement("div");
+    div.className = "row";
+
+    div.innerHTML = `
+        <input placeholder="Item" class="name">
+        <input placeholder="Qty" class="qty" type="number" value="1">
+        <input placeholder="Price €" class="price" type="number" step="0.01" value="0">
+        <button class="remove-btn" onclick="this.parentElement.remove()">X</button>
+    `;
+
+    container.appendChild(div);
+
+    let inputs = div.querySelectorAll("input");
+
+    inputs.forEach((input, index) => {
+        input.addEventListener("keypress", function(e){
+            if(e.key === "Enter"){
+                e.preventDefault();
+
+                if(index < inputs.length - 1){
+                    inputs[index + 1].focus();
+                } else {
+                    addRow();
+                }
+            }
+        });
+    });
+}
+
+
+// SEND DATA
+async function send(){
+
+let rows = document.querySelectorAll(".row");
+
+let logs = [];
+
+rows.forEach(row=>{
+    let name = row.querySelector(".name").value;
+    let qty = parseInt(row.querySelector(".qty").value);
+    let price = parseFloat(row.querySelector(".price").value);
+
+    if(name && !isNaN(qty) && !isNaN(price)){
+        logs.push({name:name, quantity:qty, price:price});
+    }
+});
+
+if(logs.length === 0){
+    alert("Please add at least one item");
+    return;
+}
+
+let budgetValue = document.getElementById("budget").value;
+
+let data = {
+    household_size: parseInt(document.getElementById("size").value),
+    grocery_logs: logs,
+    budget: parseFloat(budgetValue)
+};
+
+let r = await fetch("/predict",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
+});
+
+if(!r.ok){
+    let err = await r.text();
+    document.getElementById("result").innerHTML =
+        "<div class='card'>Error: " + err + "</div>";
+    return;
+}
+
+let res = await r.json();
+
+showResult(res);
+}
+
+
+// SHOW RESULT
+function showResult(res){
+
+if(!res){
+    document.getElementById("result").innerHTML =
+        "<div class='card'>No response</div>";
+    return;
+}
+
+let html = `
+<div class="card"><b>Behaviour:</b> ${res.behavior_type ?? "N/A"}</div>
+<div class="card"><b>Temperature:</b> ${res.temperature ?? 0} °C</div>
+<div class="card"><b>Humidity:</b> ${res.humidity ?? 0} %</div>
+<div class="card"><b>Spoilage Risk:</b> ${res.spoilage_risk ?? "N/A"}</div>
+<div class="card"><b>Estimated Food Days:</b> ${res.estimated_food_days ?? 0}</div>
+<div class="card"><b>Budget Warning:</b> ${res.budget_warning ?? false}</div>
+<div class="card"><b>Recommendation:</b> ${res.recommendation ?? "No data"}</div>
+<div class="card"><b>Discount:</b> ${res.discount ?? 0}%</div>
+<div class="card"><b>Extra Tip:</b> ${res.extra_tip ?? "N/A"}</div>
+`;
+
+document.getElementById("result").innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
