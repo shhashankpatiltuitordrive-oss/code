@@ -164,18 +164,21 @@ if(logs.length === 0){
 
 let budgetValue = document.getElementById("budget").value;
 
-let data = {
-    household_size: parseInt(document.getElementById("size").value),
-    grocery_logs: logs,
-    budget: parseFloat(budgetValue)
-};
+let usageLogs = logs.map(item => ({
+    appName: item.name,
+    category: "other",
+    startTime: "2025-01-15T10:00:00",
+    endTime: "2025-01-15T11:00:00"
+}));
 
-let r = await fetch("/predict",{
+let r = await fetch("http://Screensense-api-env.eba-axpayxy8.us-east-1.elasticbeanstalk.com/api/v1/analysis/usage", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(data)
+    body:JSON.stringify({
+        userId: "user123",
+        usageLogs: usageLogs
+    })
 });
-
 if(!r.ok){
     let err = await r.text();
     document.getElementById("result").innerHTML =
@@ -185,18 +188,12 @@ if(!r.ok){
 
 let res = await r.json();
 
-showResult(res);
+document.getElementById("result").innerHTML =
+    "<div class='card'>" + JSON.stringify(res, null, 2) + "</div>";
 }
 
 
-// SHOW RESULT
-function showResult(res){
 
-if(!res){
-    document.getElementById("result").innerHTML =
-        "<div class='card'>No response</div>";
-    return;
-}
 
 let html = `
 <div class="card"><b>Behaviour:</b> ${res.behavior_type ?? "N/A"}</div>
