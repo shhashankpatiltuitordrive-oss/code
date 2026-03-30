@@ -171,12 +171,13 @@ let usageLogs = logs.map(item => ({
     endTime: "2025-01-15T11:00:00"
 }));
 
-let r = await fetch("http://Screensense-api-env.eba-axpayxy8.us-east-1.elasticbeanstalk.com/api/v1/analysis/usage", {
+let r = await fetch("http://127.0.0.1:8000/predict", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-        userId: "user123",
-        usageLogs: usageLogs
+   body: JSON.stringify({
+    household_size: parseInt(document.getElementById("size").value),
+    grocery_logs: logs,
+    budget: parseFloat(budgetValue)
     })
 });
 if(!r.ok){
@@ -188,27 +189,24 @@ if(!r.ok){
 
 let res = await r.json();
 
-document.getElementById("result").innerHTML =
-    "<div class='card'>" + JSON.stringify(res, null, 2) + "</div>";
-}
-
-
-
-
 let html = `
-<div class="card"><b>Behaviour:</b> ${res.behavior_type ?? "N/A"}</div>
-<div class="card"><b>Temperature:</b> ${res.temperature ?? 0} °C</div>
-<div class="card"><b>Humidity:</b> ${res.humidity ?? 0} %</div>
-<div class="card"><b>Spoilage Risk:</b> ${res.spoilage_risk ?? "N/A"}</div>
-<div class="card"><b>Estimated Food Days:</b> ${res.estimated_food_days ?? 0}</div>
-<div class="card"><b>Budget Warning:</b> ${res.budget_warning ?? false}</div>
-<div class="card"><b>Recommendation:</b> ${res.recommendation ?? "No data"}</div>
-<div class="card"><b>Discount:</b> ${res.discount ?? 0}%</div>
-<div class="card"><b>Extra Tip:</b> ${res.extra_tip ?? "N/A"}</div>
+<div class="card"><b>Behaviour:</b> ${res.behavior_type}</div>
+<div class="card"><b>Temperature:</b> ${res.temperature} °C</div>
+<div class="card"><b>Spoilage Risk:</b> ${res.spoilage_risk}</div>
+<div class="card"><b>Estimated Days:</b> ${res.estimated_food_days}</div>
+<div class="card"><b>Budget Warning:</b> ${res.budget_warning}</div>
+<div class="card"><b>Recommendation:</b> ${res.recommendation}</div>
+<div class="card"><b>Budget Status:</b> ${res.budget_status}</div>
+<div class="card"><b>Budget Suggestion:</b> ${res.budget_suggestion}</div>
 `;
 
 document.getElementById("result").innerHTML = html;
+
+
 }
+
+
+
 
 </script>
 
