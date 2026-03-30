@@ -1,3 +1,8 @@
+# Food Consumption Predictor Backend
+# This FastAPI application processes grocery data, integrates multiple APIs,
+# and returns predictions related to food usage, budget, and spoilage risk.
+
+from budget_lib import calculate_budget
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from enum import IntEnum
@@ -21,6 +26,8 @@ app.add_middleware(
 )
 
 # --- Models ---
+# Enum to represent household size (1–6 members)
+
 
 class HouseholdSize(IntEnum):
     one = 1
@@ -30,10 +37,14 @@ class HouseholdSize(IntEnum):
     five = 5
     six = 6
 
+# Model representing each grocery item entered by user
+
 class GroceryItem(BaseModel):
     name: str
     quantity: int = Field(..., ge=1)
     price: float = Field(..., ge=0)
+
+# Request model containing all user input data
 
 class GroceryRequest(BaseModel):
     household_size: HouseholdSize
@@ -41,8 +52,13 @@ class GroceryRequest(BaseModel):
     budget: float
 
 # --- Main Endpoints ---
+# Endpoint to analyze whether total grocery cost is within budget
+
 @app.post("/budget-analysis")
 def budget_analysis(data: GroceryRequest):
+
+    # Calculate total cost of groceries
+
 
     total_cost = sum(item.price * item.quantity for item in data.grocery_logs)
 
@@ -58,23 +74,30 @@ def budget_analysis(data: GroceryRequest):
         "status": status,
         "suggestion": suggestion
     }
+# Main prediction endpoint integrating multiple services
 
 @app.post("/predict")
 def predict_food_usage(data: GroceryRequest):
+    # Calculate total cost of all grocery items
     try:
         # Total cost calculation
         total_cost = sum(item.price * item.quantity for item in data.grocery_logs)
 
         # Weather API
+        # Call public weather API to get current temperature
         weather_res = requests.get(
-            "https://api.open-meteo.com/v1/forecast?latitude=28.6&longitude=77.2&current_weather=true",
+    "https://api.open-meteo.com/v1/forecast?latitude=53.35&longitude=-6.26&current_weather=true",
             timeout=5
         )
+        print(weather_res.url)
+        print(weather)
+        
         weather_res.raise_for_status()
         weather = weather_res.json()
         temperature = weather["current_weather"]["temperature"]
 
         # Classmate API
+        # Call classmate API to analyze user behaviour and usage patterns
         try:
             classmate_res = requests.post(
                 "http://Screensense-api-env.eba-axpayxy8.us-east-1.elasticbeanstalk.com/api/v1/analysis/usage",
@@ -97,18 +120,24 @@ def predict_food_usage(data: GroceryRequest):
 
             behavior = classmate.get("data", {}).get("summary", {}).get("wellnessLevel", "unknown")     
             total_minutes = classmate.get("data", {}).get("summary", {}).get("totalMinutes", 0)
-            
-            budget_res = requests.post(
-    "http://127.0.0.1:8000/budget-analysis",
-    json=data.dict(),
-    timeout=5
-)
-            budget_data = budget_res.json()
 
+            budget_data = calculate_budget(data.grocery_logs, data.budget)
+
+# Handle errors from external API calls gracefully
 
         except Exception as e:
             print("Classmate API error:", str(e))
-            classmate = {"discount": 0, "tip": 0}
+            classmate = {
+    "data": {
+        "summary": {
+            "wellnessLevel": "unknown",
+            "totalMinutes": 0
+        }
+    },
+    "discount": 0,
+    "tip": 0
+}
+        
             behavior = "unknown"
 
         discount = classmate.get("discount", 0)
@@ -136,7 +165,7 @@ def predict_food_usage(data: GroceryRequest):
     "budget_suggestion": budget_data.get("suggestion"),
             "discount": discount,
             "extra_tip": tip,
-            "api_sources": ["weather_api", "classmate_api"],
+            "api_sources": ["weather_api", "classmate_api", "budget_api"],
             "total_usage_minutes": total_minutes,
         }
 
