@@ -1,3 +1,7 @@
+<!-- Food Consumption Predictor Frontend -->
+<!-- This UI allows users to input grocery data and view predictions -->
+
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -86,7 +90,10 @@ button {
 <option>6</option>
 </select>
 
+<!-- Dynamic grocery input fields -->
+
 <h3>Grocery Logs</h3>
+<!-- Button to add new grocery item rows -->
 
 <button class="add-btn" onclick="addRow()">+ Add Item</button>
 
@@ -100,14 +107,17 @@ button {
 <div id="result"></div>
 
 </div>
-
+<!-- JavaScript to collect user input and send API request -->
 <script>
+    
 
 let container = document.getElementById("groceryContainer");
 
 // default rows
 addRow();
 addRow();
+
+// Function to dynamically add new grocery input row
 
 function addRow(){
     let div = document.createElement("div");
@@ -138,7 +148,7 @@ function addRow(){
         });
     });
 }
-
+// Collect data from UI and send POST request to backend API
 
 // SEND DATA
 async function send(){
@@ -171,6 +181,9 @@ let usageLogs = logs.map(item => ({
     endTime: "2025-01-15T11:00:00"
 }));
 
+// Send request to backend prediction API
+
+
 let r = await fetch("http://127.0.0.1:8000/predict", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
@@ -188,6 +201,9 @@ if(!r.ok){
 }
 
 let res = await r.json();
+
+// Display prediction results returned from backend
+
 
 let html = `
 <div class="card"><b>Behaviour:</b> ${res.behavior_type}</div>
